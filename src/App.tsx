@@ -6,8 +6,8 @@ const gridHeight = 11;
 const screenRadius = 50;
 const screenHeight = (gridHeight * screenRadius * 2) + screenRadius;
 const screenWidth = (gridWidth * screenRadius * 2) + screenRadius;
-const circleHRadius = screenRadius;
-const circleVRadius = screenRadius;
+const circleHRadius = screenRadius * 0.8;
+const circleVRadius = screenRadius * 0.8;
 
 interface GridPosition {
   x: number;
@@ -45,7 +45,6 @@ let ImageDefs = (props: object) => {
         y="0" 
         height="100px" 
         width="100px" 
-        preserveAspectRatio="true" 
         transform="translate(-50,-50)"
       />)
     );
@@ -61,7 +60,6 @@ let ImageDefs = (props: object) => {
         y="0" 
         height="100px" 
         width="100px" 
-        preserveAspectRatio="true" 
         transform="translate(-50,-50)"
       />
     </defs>);
@@ -314,7 +312,12 @@ class App extends React.Component<AppProps, AppState> {
   render() {
     return (
       <div className="board">
-        <svg viewBox={`0 0 ${screenWidth} ${screenHeight}`} xmlns="http://www.w3.org/2000/svg">
+        <svg 
+          viewBox={`0 0 ${screenWidth} ${screenHeight}`} 
+          width="1024" 
+          height="768" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <rect id="background" width="100%" height="100%" />
           <ImageDefs />
           {
