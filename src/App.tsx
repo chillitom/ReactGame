@@ -98,6 +98,16 @@ class App extends React.Component<AppProps, AppState> {
       }
       this.state.cells.push(row);
     }
+
+    for (let n = 0; n < 20; n++) {
+      let x = Math.floor(Math.random() * gridWidth);
+      let y = Math.floor(Math.random() * gridHeight);
+      if (x !== catState.x && y !== catState.y) {
+          if (!this.state.cells[y][x].set) {
+            this.state.cells[y][x].set = true;
+          }
+      }
+    }
   }
 
   isValidPosition(pos: GridPosition) {
@@ -145,9 +155,9 @@ class App extends React.Component<AppProps, AppState> {
   getRandomMove(cells: CellState[][], catPosition: GridPosition) {
     let possibleMoves = this.getPossibleMoves(cells, catPosition);
 
-    let index = Math.floor(Math.random() * possibleMoves.length);
-
-    return possibleMoves[index];
+    return (possibleMoves.length > 0) 
+      ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+      : catPosition;
   }
 
   isBorderCell(cell: GridPosition) {
@@ -239,9 +249,8 @@ class App extends React.Component<AppProps, AppState> {
       ? quickestPath[0].cellState 
       : this.getRandomMove(newCells, this.state.cat);
     
-    if (nextMovePos == null) {
-      alert('done');
-      return;
+    if (posEquals(this.state.cat, nextMovePos)) {
+      alert('Well done!');
     }
 
     let nextState = {
