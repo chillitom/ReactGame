@@ -1,23 +1,26 @@
 import * as React from 'react';
 import './App.css';
 
-interface CircleProps {
+interface HasGridPosition {
   x: number;
   y: number;
+}
+
+interface CircleProps extends HasGridPosition {
   set: boolean;
   onClick: (x: number, y: number) => void;
 }
 
-let toCoords = (x: number, y: number) => {
-  let offset = y % 2 ? 50 : 0;
+let toScreen = (pos: HasGridPosition) => {
+  let offset = pos.y % 2 ? 50 : 0;
   return {
-    cx: x * 100 + 50 + offset,
-    cy: y * 74 + 50
+    cx: pos.x * 100 + 50 + offset,
+    cy: pos.y * 74 + 50
   }; 
 };
 
 let Circle = (props: CircleProps) => {
-    let coords = toCoords(props.x, props.y);
+    let coords = toScreen(props);
     let className = props.set ? 'set' : 'unset';
     return (
       <ellipse
@@ -31,7 +34,12 @@ let Circle = (props: CircleProps) => {
     );
 };
 
-// let Cat = (props: CatProps) => <
+interface CatState extends HasGridPosition {}
+
+let Cat = (props: CatState) => {
+  let coords = toScreen(props);
+  return <circle cx={coords.cx} cy={coords.cy} r={30} />;
+};
 
 interface CellState {
   x: number;
@@ -43,13 +51,16 @@ interface AppProps {}
 
 interface AppState {
   cells: CellState[];
+  cat: CatState;
 }
 
 class App extends React.Component < AppProps, AppState > {
   constructor(props: AppProps) {
     super(props);
     
-    this.state = {cells: []};
+    let catState = {x: 5, y: 5};
+
+    this.state = {cells: [], cat: catState};
 
     for (let y = 0; y < 11; y++) {
       for (let x = 0; x < 11; x++) {
@@ -84,6 +95,7 @@ class App extends React.Component < AppProps, AppState > {
                       onClick={setCell} 
                     /> )
           }
+          <Cat x={this.state.cat.x} y={this.state.cat.y}/>
         </svg>
       </div>
     );
