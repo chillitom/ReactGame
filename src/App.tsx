@@ -82,11 +82,57 @@ class App extends React.Component < AppProps, AppState > {
     }
   }
 
-  getNeighbours(pos: GridPosition) {
-    return;
+  isValidPosition(pos: GridPosition) {
+    return pos.x >= 0 && pos.x < gridWidth && pos.y >= 0 && pos.y >= gridHeight;
   }
 
-  setCell(pos: GridPosition) { 
+  getNeighbours(pos: GridPosition) {
+    let {x, y} = pos;
+    let positions =
+      (pos.y % 2)
+        ? [
+            {x: x - 1, y: y - 1},
+            {x: x + 0, y: y - 1},
+            {x: x + 1, y: y + 0}, 
+            {x: x + 0, y: y + 1}, 
+            {x: x - 1, y: y + 1}, 
+            {x: x - 1, y: y + 0}
+          ] 
+        : [
+            {x: x - 0, y: y - 1},
+            {x: x + 1, y: y - 1},
+            {x: x + 1, y: y + 0}, 
+            {x: x + 1, y: y + 1}, 
+            {x: x - 0, y: y + 1}, 
+            {x: x - 1, y: y + 0}
+          ];
+    
+    return positions.filter(this.isValidPosition);
+  }
+
+  getPossibleMoves(catPosition: GridPosition) {
+    let neighbours = this.getNeighbours(catPosition);
+
+    return neighbours.filter(n => !this.state.cells[n.y][n.x].set);
+  }
+
+  getNextMove(catPosition: GridPosition) {
+    let possibleMoves = this.getPossibleMoves(catPosition);
+
+    let index = Math.floor(Math.random() * possibleMoves.length);
+
+    return possibleMoves[index];
+  }
+
+  getCell(pos: GridPosition) {
+    if (!this.isValidPosition(pos)) {
+      throw new Error(`illegal operation ${pos.x},${pos.y} outside of play area`);
+    }
+    
+    return this.state.cells[pos.y][pos.x];
+  }
+
+  handleClick(pos: GridPosition) { 
     const cells = this.state.cells.map(row => {
       return row.map(cell => {
         if (cell.x === pos.x && cell.y === pos.y) {
@@ -103,18 +149,18 @@ class App extends React.Component < AppProps, AppState > {
   render() {
     return (
       <div className="board">
-        <svg viewBox={'0 0 ' + screenWidth + ' ' + screenHeight} xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox={`0 0 ${screenWidth} ${screenHeight}`} xmlns="http://www.w3.org/2000/svg">
           {
             this.state.cells
               .map(
                   (row) =>
                     row.map(cell =>  
                       <Circle 
-                        key={'' + cell.x + '-' + cell.y} 
+                        key={`${cell.x}-${cell.y}`} 
                         x={cell.x} 
                         y={cell.y}
                         set={cell.set}
-                        onClick={pos => this.setCell(pos)} 
+                        onClick={pos => this.handleClick(pos)} 
                       /> )
                     )
           }
