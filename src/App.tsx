@@ -6,8 +6,8 @@ const gridHeight = 11;
 const screenRadius = 50;
 const screenHeight = (gridHeight * screenRadius * 2) + screenRadius;
 const screenWidth = (gridWidth * screenRadius * 2) + screenRadius;
-const circleWidth = screenRadius * 0.9;
-const circleHeight = screenRadius * 0.8;
+const circleHRadius = screenRadius;
+const circleVRadius = screenRadius;
 
 interface GridPosition {
   x: number;
@@ -17,7 +17,8 @@ interface GridPosition {
 interface CatState extends GridPosition {}
 
 interface CircleProps extends GridPosition {
-  set: boolean;
+  full: boolean;
+  image: string;
   onClick: (pos: GridPosition) => void;
 }
 
@@ -25,38 +26,86 @@ let toScreen = (pos: GridPosition) => {
   let offset = pos.y % 2 ? screenRadius : 0;
   return {
     cx: pos.x * screenRadius * 2 + screenRadius + offset,
-    cy: pos.y * 74 + screenRadius
+    cy: pos.y * screenRadius * 2 + screenRadius
   }; 
 };
 
 let posEquals = (a: GridPosition, b: GridPosition) => a.x === b.x && a.y === b.y;
 
+let rockNames = [1, 2, 3, 4, 5, 6, 7].map(r => 'rock-' + r);
+
+let ImageDefs = (props: object) => {
+  let rockDefs = 
+    rockNames.map(r => (
+      <image 
+        id={r} 
+        key={r} 
+        xlinkHref={require(`./svg/rocks/${r}.svg`)} 
+        x="0" 
+        y="0" 
+        height="100px" 
+        width="100px" 
+        preserveAspectRatio="true" 
+        transform="translate(-50,-50)"
+      />)
+    );
+
+  return (
+    <defs>
+      {rockDefs}
+      <image 
+        id="egg" 
+        key="egg" 
+        xlinkHref={require(`./svg/egg.svg`)} 
+        x="0" 
+        y="0" 
+        height="100px" 
+        width="100px" 
+        preserveAspectRatio="true" 
+        transform="translate(-50,-50)"
+      />
+    </defs>);
+};
+
 let Circle = (props: CircleProps) => {
     let coords = toScreen(props);
-    let className = props.set ? 'set' : 'unset';
+    let className = props.full ? 'set' : 'unset';
+
+    if (props.full && props.image !== '') {
+      return (
+        <use 
+          xlinkHref={'#' + props.image} 
+          transform={`translate(${coords.cx},${coords.cy})`}
+        /> 
+      );
+    }
     return (
       <ellipse
         cx={coords.cx}
         cy={coords.cy} 
-        rx={circleWidth} 
-        ry={circleHeight}
+        rx={circleHRadius} 
+        ry={circleVRadius}
         className={className} 
         onClick={() => props.onClick(props)}
-      >
-        <text>{`${props.x},${props.y}`}</text>
-      </ellipse>
+      />
     );
 };
 
 let Cat = (props: CatState) => {
   let coords = toScreen(props);
-  return <circle cx={coords.cx} cy={coords.cy} r={30} />;
+  return (
+    <use 
+      xlinkHref="#egg"
+      transform={`translate(${coords.cx},${coords.cy})`}
+    /> 
+  );
 };
 
 interface CellState {
   x: number;
   y: number;
   set: boolean;
+  image: string;
 }
 
 interface AppProps {}
@@ -94,7 +143,7 @@ class App extends React.Component<AppProps, AppState> {
     for (let y = 0; y < gridHeight; y++) {
       let row = [];
       for (let x = 0; x < gridWidth; x++) {
-        row.push({x: x, y: y, set: false});
+        row.push({x: x, y: y, set: false, image: ''});
       }
       this.state.cells.push(row);
     }
@@ -103,8 +152,10 @@ class App extends React.Component<AppProps, AppState> {
       let x = Math.floor(Math.random() * gridWidth);
       let y = Math.floor(Math.random() * gridHeight);
       if (x !== catState.x && y !== catState.y) {
-          if (!this.state.cells[y][x].set) {
-            this.state.cells[y][x].set = true;
+          let cell = this.state.cells[y][x];
+          if (!cell.set) {
+            cell.set = true;
+            cell.image = rockNames[Math.floor(Math.random() * rockNames.length)];
           }
       }
     }
@@ -264,6 +315,8 @@ class App extends React.Component<AppProps, AppState> {
     return (
       <div className="board">
         <svg viewBox={`0 0 ${screenWidth} ${screenHeight}`} xmlns="http://www.w3.org/2000/svg">
+          <rect id="background" width="100%" height="100%" />
+          <ImageDefs />
           {
             this.state.cells
               .map(
@@ -273,7 +326,8 @@ class App extends React.Component<AppProps, AppState> {
                         key={`${cell.x}-${cell.y}`} 
                         x={cell.x} 
                         y={cell.y}
-                        set={cell.set}
+                        full={cell.set}
+                        image={cell.image}
                         onClick={pos => this.handleClick(pos)} 
                       /> )
                     )
