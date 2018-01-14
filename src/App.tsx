@@ -29,6 +29,8 @@ let toScreen = (pos: GridPosition) => {
   }; 
 };
 
+let posEquals = (a: GridPosition, b: GridPosition) => a.x === b.x && a.y === b.y;
+
 let Circle = (props: CircleProps) => {
     let coords = toScreen(props);
     let className = props.set ? 'set' : 'unset';
@@ -40,7 +42,9 @@ let Circle = (props: CircleProps) => {
         ry={circleHeight}
         className={className} 
         onClick={() => props.onClick(props)}
-      />
+      >
+        <text>{`${props.x},${props.y}`}</text>
+      </ellipse>
     );
 };
 
@@ -62,7 +66,21 @@ interface AppState {
   cat: CatState;
 }
 
-class App extends React.Component < AppProps, AppState > {
+class AStarCell {
+  f: number;
+  shortestDistance: number;
+  h: number;
+  visited: boolean;
+  closed: boolean;
+  parent: AStarCell;
+  cellState: CellState;
+
+  constructor(cell: CellState) {
+    this.cellState = cell;
+  }
+}
+
+class App extends React.Component<AppProps, AppState> {
   constructor(props: AppProps) {
     super(props);
     
@@ -83,67 +101,154 @@ class App extends React.Component < AppProps, AppState > {
   }
 
   isValidPosition(pos: GridPosition) {
-    return pos.x >= 0 && pos.x < gridWidth && pos.y >= 0 && pos.y >= gridHeight;
+    return pos.x >= 0 && pos.x < gridWidth && pos.y >= 0 && pos.y < gridHeight;
   }
 
   getNeighbours(pos: GridPosition) {
     let {x, y} = pos;
     let positions =
-      (pos.y % 2)
+      (pos.y % 2 === 0)
         ? [
             {x: x - 1, y: y - 1},
             {x: x + 0, y: y - 1},
+            {x: x - 1, y: y + 0},
             {x: x + 1, y: y + 0}, 
             {x: x + 0, y: y + 1}, 
-            {x: x - 1, y: y + 1}, 
-            {x: x - 1, y: y + 0}
+            {x: x - 1, y: y + 1},
           ] 
         : [
             {x: x - 0, y: y - 1},
             {x: x + 1, y: y - 1},
+            {x: x - 1, y: y + 0},
             {x: x + 1, y: y + 0}, 
             {x: x + 1, y: y + 1}, 
-            {x: x - 0, y: y + 1}, 
-            {x: x - 1, y: y + 0}
+            {x: x - 0, y: y + 1},
           ];
     
     return positions.filter(this.isValidPosition);
   }
 
-  getPossibleMoves(catPosition: GridPosition) {
-    let neighbours = this.getNeighbours(catPosition);
-
-    return neighbours.filter(n => !this.state.cells[n.y][n.x].set);
+  getCell(cells: CellState[][], pos: GridPosition) {
+    if (!this.isValidPosition(pos)) {
+      throw new Error(`illegal operation ${pos.x},${pos.y} outside of play area`);
+    }
+    
+    return cells[pos.y][pos.x];
   }
 
-  getNextMove(catPosition: GridPosition) {
-    let possibleMoves = this.getPossibleMoves(catPosition);
+  getPossibleMoves(cells: CellState[][], catPosition: GridPosition) {
+    let neighbours = this.getNeighbours(catPosition);
+
+    return neighbours.filter(n => !this.getCell(cells, n).set);
+  }
+
+  getRandomMove(cells: CellState[][], catPosition: GridPosition) {
+    let possibleMoves = this.getPossibleMoves(cells, catPosition);
 
     let index = Math.floor(Math.random() * possibleMoves.length);
 
     return possibleMoves[index];
   }
 
-  getCell(pos: GridPosition) {
-    if (!this.isValidPosition(pos)) {
-      throw new Error(`illegal operation ${pos.x},${pos.y} outside of play area`);
+  isBorderCell(cell: GridPosition) {
+    return cell.x === 0 
+    || cell.y === 0 
+    || cell.x === gridWidth - 1 
+    || cell.y === gridHeight - 1;
+  }
+
+  // modified A* algorithm to find quickest route to an edge 
+  // https://github.com/bgrins/javascript-astar/blob/0.0.1/original-implementation/astar-list.js
+  searchShortestPathToEdge (cells: CellState[][], start: GridPosition) {
+
+    let grid = cells.map(row => row.map(c => new AStarCell(c)));
+
+    var openList: AStarCell[] = [grid[start.y][start.x]];
+
+    while (openList.length > 0) {
+
+        var lowInd = 0;
+        for (let i = 0; i < openList.length; i++) {
+            if (openList[i].f < openList[lowInd].f) { lowInd = i; }
+        }
+        var currentNode = openList[lowInd];
+
+        if (this.isBorderCell(currentNode.cellState)) {
+            var curr = currentNode;
+            var ret = [];
+            while (curr.parent) {
+                ret.push(curr);
+                curr = curr.parent;
+            }
+            return ret.reverse();
+        }
+
+        openList.splice(lowInd, 1);
+        currentNode.closed = true;
+
+        var neighbors = this.getNeighbours(currentNode.cellState);
+        for (let n of neighbors) {
+            let {x, y} = n;
+            var neighbour = grid[y][x];
+
+            if (neighbour.closed || neighbour.cellState.set) {
+                continue;
+            }
+
+            var distance = currentNode.shortestDistance + 1;
+            var distanceIsShortest = false;
+
+            if (!neighbour.visited) {
+                distanceIsShortest = true;
+                [neighbour.h] = [x, y, gridWidth - x, gridWidth - y].sort();
+                neighbour.visited = true;
+                openList.push(neighbour);
+            } else if (distance < neighbour.shortestDistance) {
+                distanceIsShortest = true;
+            }
+
+            if (distanceIsShortest) {
+                neighbour.parent = currentNode;
+                neighbour.shortestDistance = distance;
+                neighbour.f = neighbour.shortestDistance + neighbour.h;
+            }
+        }
     }
-    
-    return this.state.cells[pos.y][pos.x];
+
+    return [];
+}
+
+  updateCell (cell: CellState) {
+    return this.state.cells.map(
+      row => row.map(c => posEquals(c, cell) ? cell : c));
   }
 
   handleClick(pos: GridPosition) { 
-    const cells = this.state.cells.map(row => {
-      return row.map(cell => {
-        if (cell.x === pos.x && cell.y === pos.y) {
-          return {...cell, set: true};
-        }
-        return cell;
-      });
-    });
+    let cell = this.getCell(this.state.cells, pos);
 
-    const cat = {...pos};
-    this.setState({cells: cells, cat: cat});
+    if (cell.set || posEquals(cell, this.state.cat)) {
+      return;
+    }
+
+    let newCells = this.updateCell({...cell, set: true});
+
+    let quickestPath = this.searchShortestPathToEdge(newCells, this.state.cat);
+
+    let nextMovePos = 
+      (quickestPath.length > 0) 
+      ? quickestPath[0].cellState 
+      : this.getRandomMove(newCells, this.state.cat);
+    
+    if (nextMovePos == null) {
+      alert('done');
+      return;
+    }
+
+    let nextState = {
+      cat: {...this.state.cat, ...nextMovePos},
+      cells: newCells
+    };
+    this.setState(nextState);
   }
 
   render() {
