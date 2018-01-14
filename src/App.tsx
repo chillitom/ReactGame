@@ -1,17 +1,19 @@
 import * as React from 'react';
 import './App.css';
 
-interface HasGridPosition {
+interface GridPosition {
   x: number;
   y: number;
 }
 
-interface CircleProps extends HasGridPosition {
+interface CatState extends GridPosition {}
+
+interface CircleProps extends GridPosition {
   set: boolean;
-  onClick: (x: number, y: number) => void;
+  onClick: (pos: GridPosition) => void;
 }
 
-let toScreen = (pos: HasGridPosition) => {
+let toScreen = (pos: GridPosition) => {
   let offset = pos.y % 2 ? 50 : 0;
   return {
     cx: pos.x * 100 + 50 + offset,
@@ -29,12 +31,10 @@ let Circle = (props: CircleProps) => {
         rx={45} 
         ry={40}
         className={className} 
-        onClick={() => props.onClick(props.x, props.y)}
+        onClick={() => props.onClick(props)}
       />
     );
 };
-
-interface CatState extends HasGridPosition {}
 
 let Cat = (props: CatState) => {
   let coords = toScreen(props);
@@ -69,17 +69,19 @@ class App extends React.Component < AppProps, AppState > {
     }
   }
  
-  render() {
-    var setCell = (x: number, y: number) => { 
-      const cells = this.state.cells.map ((cell) => {
-        if (cell.x === x && cell.y === y) {
-          return {...cell, set: true};
-        }
-        return cell;
-      });
-      this.setState({cells: cells});
-    };
+  setCell(pos: GridPosition) { 
+    const cells = this.state.cells.map ((cell) => {
+      if (cell.x === pos.x && cell.y === pos.y) {
+        return {...cell, set: true};
+      }
+      return cell;
+    });
 
+    const cat = {...pos};
+    this.setState({cells: cells, cat: cat});
+  }
+
+  render() {
     return (
       <div className="board">
         <svg viewBox="0 0 1150 1150" xmlns="http://www.w3.org/2000/svg">
@@ -92,10 +94,13 @@ class App extends React.Component < AppProps, AppState > {
                       x={cell.x} 
                       y={cell.y}
                       set={cell.set}
-                      onClick={setCell} 
+                      onClick={pos => this.setCell(pos)} 
                     /> )
           }
-          <Cat x={this.state.cat.x} y={this.state.cat.y}/>
+          <Cat 
+            x={this.state.cat.x} 
+            y={this.state.cat.y}
+          />
         </svg>
       </div>
     );
