@@ -1,6 +1,14 @@
 import * as React from 'react';
 import './App.css';
 
+const gridWidth = 11;
+const gridHeight = 11;
+const screenRadius = 50;
+const screenHeight = (gridHeight * screenRadius * 2) + screenRadius;
+const screenWidth = (gridWidth * screenRadius * 2) + screenRadius;
+const circleWidth = screenRadius * 0.9;
+const circleHeight = screenRadius * 0.8;
+
 interface GridPosition {
   x: number;
   y: number;
@@ -14,10 +22,10 @@ interface CircleProps extends GridPosition {
 }
 
 let toScreen = (pos: GridPosition) => {
-  let offset = pos.y % 2 ? 50 : 0;
+  let offset = pos.y % 2 ? screenRadius : 0;
   return {
-    cx: pos.x * 100 + 50 + offset,
-    cy: pos.y * 74 + 50
+    cx: pos.x * screenRadius * 2 + screenRadius + offset,
+    cy: pos.y * 74 + screenRadius
   }; 
 };
 
@@ -28,8 +36,8 @@ let Circle = (props: CircleProps) => {
       <ellipse
         cx={coords.cx}
         cy={coords.cy} 
-        rx={45} 
-        ry={40}
+        rx={circleWidth} 
+        ry={circleHeight}
         className={className} 
         onClick={() => props.onClick(props)}
       />
@@ -58,19 +66,26 @@ class App extends React.Component < AppProps, AppState > {
   constructor(props: AppProps) {
     super(props);
     
-    let catState = {x: 5, y: 5};
+    let catState = {
+      x: Math.floor(gridWidth / 2), 
+      y: Math.floor(gridHeight / 2)
+    };
 
     this.state = {cells: [], cat: catState};
 
-    for (let y = 0; y < 11; y++) {
+    for (let y = 0; y < gridHeight; y++) {
       let row = [];
-      for (let x = 0; x < 11; x++) {
+      for (let x = 0; x < gridWidth; x++) {
         row.push({x: x, y: y, set: false});
       }
       this.state.cells.push(row);
     }
   }
- 
+
+  getNeighbours(pos: GridPosition) {
+    return;
+  }
+
   setCell(pos: GridPosition) { 
     const cells = this.state.cells.map(row => {
       return row.map(cell => {
@@ -88,7 +103,7 @@ class App extends React.Component < AppProps, AppState > {
   render() {
     return (
       <div className="board">
-        <svg viewBox="0 0 1150 1150" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox={'0 0 ' + screenWidth + ' ' + screenHeight} xmlns="http://www.w3.org/2000/svg">
           {
             this.state.cells
               .map(
