@@ -50,7 +50,7 @@ interface CellState {
 interface AppProps {}
 
 interface AppState {
-  cells: CellState[];
+  cells: CellState[][];
   cat: CatState;
 }
 
@@ -63,18 +63,22 @@ class App extends React.Component < AppProps, AppState > {
     this.state = {cells: [], cat: catState};
 
     for (let y = 0; y < 11; y++) {
+      let row = [];
       for (let x = 0; x < 11; x++) {
-        this.state.cells.push({x: x, y: y, set: false});
+        row.push({x: x, y: y, set: false});
       }
+      this.state.cells.push(row);
     }
   }
  
   setCell(pos: GridPosition) { 
-    const cells = this.state.cells.map ((cell) => {
-      if (cell.x === pos.x && cell.y === pos.y) {
-        return {...cell, set: true};
-      }
-      return cell;
+    const cells = this.state.cells.map(row => {
+      return row.map(cell => {
+        if (cell.x === pos.x && cell.y === pos.y) {
+          return {...cell, set: true};
+        }
+        return cell;
+      });
     });
 
     const cat = {...pos};
@@ -88,14 +92,16 @@ class App extends React.Component < AppProps, AppState > {
           {
             this.state.cells
               .map(
-                  (cell) => 
-                    <Circle 
-                      key={'' + cell.x + '-' + cell.y} 
-                      x={cell.x} 
-                      y={cell.y}
-                      set={cell.set}
-                      onClick={pos => this.setCell(pos)} 
-                    /> )
+                  (row) =>
+                    row.map(cell =>  
+                      <Circle 
+                        key={'' + cell.x + '-' + cell.y} 
+                        x={cell.x} 
+                        y={cell.y}
+                        set={cell.set}
+                        onClick={pos => this.setCell(pos)} 
+                      /> )
+                    )
           }
           <Cat 
             x={this.state.cat.x} 
