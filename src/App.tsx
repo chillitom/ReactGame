@@ -4,10 +4,10 @@ import './App.css';
 const gridWidth = 11;
 const gridHeight = 11;
 const screenRadius = 50;
-const screenHeight = (gridHeight * screenRadius * 2) + screenRadius;
-const screenWidth = (gridWidth * screenRadius * 2) + screenRadius;
 const circleHRadius = screenRadius * 0.8;
-const circleVRadius = screenRadius * 0.8;
+const circleVRadius = screenRadius * 0.74;
+const screenHeight = (gridHeight * circleVRadius * 2) + screenRadius;
+const screenWidth = (gridWidth * screenRadius * 2) + screenRadius;
 
 interface GridPosition {
   x: number;
@@ -26,7 +26,7 @@ let toScreen = (pos: GridPosition) => {
   let offset = pos.y % 2 ? screenRadius : 0;
   return {
     cx: pos.x * screenRadius * 2 + screenRadius + offset,
-    cy: pos.y * screenRadius * 2 + screenRadius
+    cy: pos.y * circleVRadius * 2 + screenRadius
   }; 
 };
 
